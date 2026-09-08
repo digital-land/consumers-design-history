@@ -1,7 +1,7 @@
 ---
 title: "Testing design history"
 description: |-
-  A short summary of this post
+  I think this is what shows on the summary page
 
   A longer paragraph describing what this post covers, for listings and search results.
 date: '2026-09-08'
