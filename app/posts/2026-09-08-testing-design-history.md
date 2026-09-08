@@ -22,4 +22,4 @@ _This should appear in italics_ **then bold**.
 
 ### Hopefully a smaller heading
 
-![Alt text](/testing-design-history/01-red-apple.avif)
+(/01-red-apple.avif)
