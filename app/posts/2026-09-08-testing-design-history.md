@@ -11,6 +11,9 @@ screenshots:
     src: 01-red-apple.avif
     alt: Describe what this screenshot shows, for people using a screen reader - this is a red apple
     caption: Crunchy
+  - text: Jpg image test
+    src: 02-test
+    alt: Another format of an image
 tags: ["local plans", "colour theory", "user research"]
 ---
 
@@ -22,4 +25,10 @@ _This should appear in italics_ **then bold**.
 
 ### Hopefully a smaller heading
 
-(/01-red-apple.avif)
+![Image of an apple](/testing-design-history/01-red-apple.avif)
+
+Let's try a second image
+
+![Alternate format](/testing-design-history/02-orange.jpg)
+
+### How did that go?
