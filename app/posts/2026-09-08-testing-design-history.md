@@ -14,8 +14,12 @@ screenshots:
 tags: ["local plans", "colour theory", "user research"]
 ---
 
-## Heading
+## This is a test heading to see if the post has been changed
 
-Write your post content here.
+I would write some content here about what's been changed and how it was informed by user research. The outcome of this change is xyz. 
 
-![Describe what this screenshot shows](/testing-design-history/01-example.png)
+_This should appear in italics_ **then bold**.
+
+### Hopefully a smaller heading
+
+![Alt text of an uploaded image](/testing-design-history/01-example.png)
