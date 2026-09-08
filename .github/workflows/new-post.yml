@@ -1,0 +1,58 @@
+name: New post
+
+# Run from the Actions tab to scaffold a new design history post: creates a
+# branch with a post template and an images folder (with a README), then
+# opens a pull request. Upload screenshots to the images folder on that
+# branch (e.g. via GitHub's web UI) before marking the PR ready for review.
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Slug for the post (lowercase letters, numbers and hyphens), e.g. designing-search-page'
+        required: true
+      title:
+        description: 'Post title (optional, defaults to the slug)'
+        required: false
+      tags:
+        description: 'Comma-separated tags (optional)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  new-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create post and images folder
+        id: new-post
+        env:
+          SLUG: ${{ inputs.slug }}
+          TITLE: ${{ inputs.title }}
+          TAGS: ${{ inputs.tags }}
+        run: node scripts/new-post.js
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: post/${{ steps.new-post.outputs.slug }}
+          commit-message: "Add post template: ${{ steps.new-post.outputs.title }}"
+          title: "New post: ${{ steps.new-post.outputs.title }}"
+          draft: true
+          body: |
+            Scaffolded from the [New post](../actions/workflows/new-post.yml) action.
+
+            **Next steps**
+            - [ ] Upload screenshots to `${{ steps.new-post.outputs.image-directory }}` (see the README in that folder)
+            - [ ] Update `${{ steps.new-post.outputs.post-path }}` with the real content and screenshot references
+            - [ ] Delete the images folder README once done
+            - [ ] Mark this pull request ready for review
