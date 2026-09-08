@@ -12,7 +12,7 @@ screenshots:
     alt: Describe what this screenshot shows, for people using a screen reader - this is a red apple
     caption: Crunchy
   - text: Jpg image test
-    src: 02-test
+    src: 02-orange.jpg
     alt: Another format of an image
 tags: ["local plans", "colour theory", "user research"]
 ---
