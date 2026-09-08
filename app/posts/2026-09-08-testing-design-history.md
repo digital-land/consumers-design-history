@@ -25,10 +25,10 @@ _This should appear in italics_ **then bold**.
 
 ### Hopefully a smaller heading
 
-![Image of an apple](/testing-design-history/01-red-apple.avif)
+![Image of an apple](../images/testing-design-history/01-red-apple.avif)
 
 Let's try a second image
 
-![Alternate format](/testing-design-history/02-orange.jpg)
+![Alternate format](../images/testing-design-history/02-orange.jpg)
 
 ### How did that go?
