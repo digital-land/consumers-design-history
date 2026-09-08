@@ -7,10 +7,10 @@ description: |-
 date: '2026-09-08'
 screenshots:
   items:
-  - text: Describe this screenshot
-    src: 01-example.png
-    alt: Describe what this screenshot shows, for people using a screen reader
-    caption: A caption shown underneath the screenshot
+  - text: Red apple
+    src: 01-red-apple.avif
+    alt: Describe what this screenshot shows, for people using a screen reader - this is a red apple
+    caption: Crunchy
 tags: ["local plans", "colour theory", "user research"]
 ---
 
@@ -22,4 +22,4 @@ _This should appear in italics_ **then bold**.
 
 ### Hopefully a smaller heading
 
-![Alt text of an uploaded image](/testing-design-history/01-example.png)
+![Alt text](/testing-design-history/01-red-apple.avif)
