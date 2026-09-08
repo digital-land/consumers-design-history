@@ -103,9 +103,19 @@ Add screenshots for this post here, then reference them from
    **Add file > Upload files**).
 2. Name each file with a two-digit number prefix showing the order it
    should appear in, e.g. \`01-original-page.png\`, \`02-new-design.png\`.
-3. Update the post's front matter (\`screenshots.items\`) and body to
-   reference each file, e.g. \`![Alt text](/${slug}/01-original-page.png)\`.
-4. Delete this README once the post is ready, and mark the pull request
+3. For each image, copy this into the \`screenshots.items\` list in the
+   post's front matter, then fill in the placeholders:
+
+   \`\`\`yaml
+   - text: Describe this screenshot
+     src: 02-your-image.png
+     alt: Describe what this screenshot shows, for people using a screen reader
+     caption: A caption shown underneath the screenshot
+   \`\`\`
+
+4. Reference the image from the post body too, e.g.
+   \`![Alt text](/${slug}/02-your-image.png)\`.
+5. Delete this README once the post is ready, and mark the pull request
    ready for review.
 
 See [CLAUDE.md](../../../CLAUDE.md) for more on the post format.
