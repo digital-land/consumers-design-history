@@ -23,7 +23,7 @@ export default function (eleventyConfig) {
     },
     url:
       process.env.GITHUB_ACTIONS &&
-      'https://digital-land.github.io/data-design-design-history/'
+      'https://digital-land.github.io/consumers-design-history/'
   })
 
   // Passthrough
@@ -49,6 +49,6 @@ export default function (eleventyConfig) {
       layouts: '_layouts',
       includes: '_components'
     },
-    pathPrefix: process.env.GITHUB_ACTIONS && '/data-design-design-history/'
+    pathPrefix: process.env.GITHUB_ACTIONS && '/consumers-design-history/'
   }
 }
