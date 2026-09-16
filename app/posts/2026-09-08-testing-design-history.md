@@ -5,15 +5,6 @@ description: |-
 
   A longer paragraph describing what this post covers, for listings and search results.
 date: '2026-09-08'
-screenshots:
-  items:
-  - text: Red apple
-    src: 01-red-apple.avif
-    alt: Describe what this screenshot shows, for people using a screen reader - this is a red apple
-    caption: Crunchy
-  - text: Jpg image test
-    src: 02-orange.jpg
-    alt: Another format of an image
 tags: ["local plans", "colour theory", "user research"]
 ---
 
