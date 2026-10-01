@@ -16,6 +16,6 @@ tags: []
 
 ## Heading
 
-Write your post content here.
+This is a test article, I want to find out how easy GitHub is to use for this process.
 
 ![Describe what this screenshot shows](/paris-testing-new-post/01-example.png)
