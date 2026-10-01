@@ -18,4 +18,4 @@ tags: []
 
 This is a test article, I want to find out how easy GitHub is to use for this process.
 
-![Describe what this screenshot shows](/paris-testing-new-post/01-example.png)
+![This image shows the current header in Gov Notify](/paris-testing-new-post/01-paris-testing-article.png)
