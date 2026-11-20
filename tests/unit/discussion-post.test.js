@@ -5,17 +5,21 @@ import {
   neutraliseMarkup,
   findImages,
   isPublishable,
+  parseDate,
   parseFormBody,
   readFrontMatter,
   renderPost,
-  rewriteImages,
-  slugify
+  rewriteImages
 } from '../../scripts/lib/discussion-post.js'
 
 const formBody = [
   '### Summary',
   '',
   'We redesigned the search page.',
+  '',
+  '### Date',
+  '',
+  '01/10/2026',
   '',
   '### Tags',
   '',
@@ -31,16 +35,26 @@ const formBody = [
 ].join('\r\n')
 
 describe('parseFormBody', () => {
-  it('splits a discussion form into summary, tags and post', () => {
+  it('splits a discussion form into summary, date, tags and post', () => {
     const result = parseFormBody(formBody)
     assert.equal(result.summary, 'We redesigned the search page.')
+    assert.equal(result.date, '01/10/2026')
     assert.deepEqual(result.tags, ['search', 'user research'])
     assert.equal(result.post, '## What we found\n\n### Summary\n\nA heading the designer wrote, which is part of the post.')
   })
 
   it('treats empty optional fields as empty', () => {
-    const result = parseFormBody('### Summary\n\nHi\n\n### Tags\n\n_No response_\n\n### Post\n\nBody')
+    const result = parseFormBody('### Summary\n\nHi\n\n### Date\n\n_No response_\n\n### Tags\n\n_No response_\n\n### Post\n\nBody')
+    assert.equal(result.date, '')
     assert.deepEqual(result.tags, [])
+  })
+
+  it('copes with fields missing, e.g. from before the date field was added', () => {
+    const result = parseFormBody('### Summary\n\nHi\n\n### Tags\n\nsearch\n\n### Post\n\nBody')
+    assert.equal(result.summary, 'Hi')
+    assert.equal(result.date, '')
+    assert.deepEqual(result.tags, ['search'])
+    assert.equal(result.post, 'Body')
   })
 
   it('uses the whole body as the post when the form was not used', () => {
@@ -111,10 +125,18 @@ describe('neutraliseMarkup', () => {
   })
 })
 
-describe('slugify', () => {
-  it('makes a URL-safe slug', () => {
-    assert.equal(slugify('Café: Search <b>page</b> redesign!'), 'cafe-search-page-redesign')
-    assert.equal(slugify('???'), 'post')
+describe('parseDate', () => {
+  it('accepts ISO and UK dates', () => {
+    assert.equal(parseDate('2026-11-20'), '2026-11-20')
+    assert.equal(parseDate('20/11/2026'), '2026-11-20')
+    assert.equal(parseDate('1/2/2026'), '2026-02-01')
+  })
+
+  it('rejects empty, unknown and impossible dates', () => {
+    assert.equal(parseDate(''), null)
+    assert.equal(parseDate('next Tuesday'), null)
+    assert.equal(parseDate('31/02/2026'), null)
+    assert.equal(parseDate('11/20/2026'), null)
   })
 })
 

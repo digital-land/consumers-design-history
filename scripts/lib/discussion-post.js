@@ -37,23 +37,27 @@ export function isPublishable (discussion, publishLabel) {
 /*
   Discussion forms (.github/DISCUSSION_TEMPLATE/design-history.yml) save the
   body as markdown with a `### <label>` heading per field. Headings are matched
-  in order, and everything after `### Post` is the post, so designers can use
-  `###` headings in their own writing.
+  in order, and may be missing (e.g. a discussion written before a field was
+  added to the form). Everything after `### Post` is the post, so designers
+  can use `###` headings in their own writing.
 
   A discussion not written with the form is treated as all post body.
 */
 export function parseFormBody (body) {
   const lines = normaliseNewlines(body).split('\n')
-  const sections = ['Summary', 'Tags', 'Post']
+  const sections = ['Summary', 'Date', 'Tags', 'Post']
   const found = {}
   let current = null
   let next = 0
 
   for (const line of lines) {
-    if (next < sections.length && line.trim() === `### ${sections[next]}`) {
-      current = sections[next]
+    const index = current === 'Post'
+      ? -1
+      : sections.findIndex((name, i) => i >= next && line.trim() === `### ${name}`)
+    if (index !== -1) {
+      current = sections[index]
       found[current] = []
-      next++
+      next = index + 1
       continue
     }
     if (current) found[current].push(line)
@@ -61,7 +65,7 @@ export function parseFormBody (body) {
 
   if (!found.Post) {
     const post = normaliseNewlines(body).trim()
-    return { summary: firstParagraph(post), tags: [], post }
+    return { summary: firstParagraph(post), date: '', tags: [], post }
   }
 
   const value = name => {
@@ -71,9 +75,28 @@ export function parseFormBody (body) {
 
   return {
     summary: value('Summary'),
+    date: plainText(value('Date')),
     tags: value('Tags').split(',').map(tag => plainText(tag)).filter(Boolean),
     post: value('Post')
   }
+}
+
+/*
+  Reads the optional date field. Accepts 2026-11-20 or 20/11/2026 (UK order)
+  and returns YYYY-MM-DD, or null if empty or not a real date.
+*/
+export function parseDate (value) {
+  const text = String(value || '').trim()
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  const uk = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  const [year, month, day] = iso
+    ? [iso[1], iso[2], iso[3]]
+    : uk ? [uk[3], uk[2], uk[1]] : []
+  if (!year) return null
+
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+  if (date.getUTCMonth() !== Number(month) - 1 || date.getUTCDate() !== Number(day)) return null
+  return date.toISOString().slice(0, 10)
 }
 
 /*
@@ -155,17 +178,6 @@ export function neutraliseMarkup (markdown) {
       index % 2 ? part : part.replace(/<(?=[A-Za-z!?/])/g, '&lt;').replace(/\{/g, '&#123;')
     ).join('')
   }).join('\n')
-}
-
-export function slugify (value) {
-  return plainText(value)
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-    .replace(/-+$/, '') || 'post'
 }
 
 // Strip characters that could be read as HTML from short text fields.

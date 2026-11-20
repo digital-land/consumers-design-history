@@ -1,1 +1,1 @@
-{"permalink":"{{ page.filePathStem | replace('posts/discussions/', '') }}/"}
+{"permalink":"/discussions/{{ page.fileSlug }}/"}

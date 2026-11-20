@@ -16,6 +16,12 @@ body:
     validations:
       required: true
   - type: input
+    id: date
+    attributes:
+      label: Date
+      description: Optional. The date shown on the post, e.g. 20/11/2026. Leave blank to use the date you started this discussion. You can change it later.
+      placeholder: 20/11/2026
+  - type: input
     id: tags
     attributes:
       label: Tags

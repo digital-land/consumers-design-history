@@ -4,9 +4,14 @@ import os from 'node:os'
 import path from 'node:path'
 import { beforeEach, describe, it } from 'node:test'
 
+import { readFrontMatter } from '../../scripts/lib/discussion-post.js'
 import { fetchDiscussions, syncDiscussions } from '../../scripts/sync-discussions.js'
 
 const asset = 'https://github.com/user-attachments/assets/aaaa-bbbb'
+
+function body ({ date = '_No response_', post = `## Found\n\n<img alt="Search page" src="${asset}" />` } = {}) {
+  return `### Summary\n\nSearch work\n\n### Date\n\n${date}\n\n### Tags\n\nsearch\n\n### Post\n\n${post}`
+}
 
 function discussion (overrides = {}) {
   return {
@@ -17,40 +22,42 @@ function discussion (overrides = {}) {
     lastEditedAt: null,
     authorAssociation: 'MEMBER',
     labels: { nodes: [{ name: 'publish' }] },
-    body: `### Summary\n\nSearch work\n\n### Tags\n\nsearch\n\n### Post\n\n## Found\n\n<img alt="Search page" src="${asset}" />`,
+    body: body(),
     ...overrides
   }
 }
 
-const silent = { warn: () => {} }
-
 describe('syncDiscussions', () => {
   let rootDir
   let downloads
+  let warnings
 
   const download = async () => {
     downloads++
     return { contentType: 'image/png', data: Buffer.from('png') }
   }
-  const sync = discussions => syncDiscussions({ discussions, rootDir, download, log: silent })
-  const postsDir = () => path.join(rootDir, 'app/posts/discussions')
+  const log = { warn: message => warnings.push(message) }
+  const sync = discussions => syncDiscussions({ discussions, rootDir, download, log })
   const list = dir => fs.readdir(path.join(rootDir, dir)).catch(() => [])
+  const readPost = async number => fs.readFile(path.join(rootDir, `app/posts/discussions/${number}.md`), 'utf8')
 
   beforeEach(async () => {
     rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-test-'))
     await fs.mkdir(path.join(rootDir, 'app/posts'), { recursive: true })
     downloads = 0
+    warnings = []
   })
 
-  it('writes a post and downloads its images next to it', async () => {
+  it('writes a post named by discussion number, with its images next to it', async () => {
     const { changes, errors } = await sync([discussion()])
     assert.deepEqual(errors, [])
     assert.deepEqual(changes, ['Add #1: Designing search'])
 
-    const post = await fs.readFile(path.join(postsDir(), '2026-11-20-designing-search.md'), 'utf8')
-    const [image] = await list('app/images/designing-search')
+    const post = await readPost(1)
+    const [image] = await list('app/images/discussions/1')
     assert.match(image, /^[0-9a-f]{16}\.png$/)
     assert.match(post, new RegExp(`!\\[Search page\\]\\(${image}\\)`))
+    assert.equal(readFrontMatter(post).date, '2026-11-20')
   })
 
   it('does nothing when nothing changed, and does not download again', async () => {
@@ -60,25 +67,34 @@ describe('syncDiscussions', () => {
     assert.equal(downloads, 1)
   })
 
-  it('keeps the same URL when the title changes', async () => {
+  it('keeps the same file when the title and date change', async () => {
     await sync([discussion()])
-    const { changes } = await sync([discussion({ title: 'Renamed' })])
+    const { changes } = await sync([discussion({ title: 'Renamed', body: body({ date: '01/10/2026' }) })])
     assert.deepEqual(changes, ['Update #1: Renamed'])
-    assert.deepEqual(await list('app/posts/discussions'), ['2026-11-20-designing-search.md'])
+    assert.deepEqual(await list('app/posts/discussions'), ['1.md'])
+    const data = readFrontMatter(await readPost(1))
+    assert.equal(data.title, 'Renamed')
+    assert.equal(data.date, '2026-10-01')
+  })
+
+  it('falls back to the created date, with a warning, when the date is invalid', async () => {
+    await sync([discussion({ body: body({ date: 'next week' }) })])
+    assert.equal(readFrontMatter(await readPost(1)).date, '2026-11-20')
+    assert.match(warnings.join('\n'), /isn't a valid date/)
   })
 
   it('removes images that are no longer used', async () => {
     await sync([discussion()])
-    await sync([discussion({ body: 'No images now' })])
-    assert.deepEqual(await list('app/images/designing-search'), [])
+    await sync([discussion({ body: body({ post: 'No images now' }) })])
+    assert.deepEqual(await list('app/images/discussions'), [])
   })
 
   it('removes a post when it is unlabelled or deleted', async () => {
     await sync([discussion()])
     const { changes } = await sync([discussion({ labels: { nodes: [] } })])
-    assert.deepEqual(changes, ['Remove #1: 2026-11-20-designing-search'])
+    assert.deepEqual(changes, ['Remove #1'])
     assert.deepEqual(await list('app/posts/discussions'), [])
-    assert.deepEqual(await list('app/images'), [])
+    assert.deepEqual(await list('app/images/discussions'), [])
   })
 
   it('ignores posts from people outside the team', async () => {
@@ -86,28 +102,20 @@ describe('syncDiscussions', () => {
     assert.deepEqual(changes, [])
   })
 
-  it('does not clash with an existing post', async () => {
-    await fs.writeFile(path.join(rootDir, 'app/posts/2026-11-20-designing-search.md'), '')
-    await sync([discussion()])
-    assert.deepEqual(await list('app/posts/discussions'), ['2026-11-20-designing-search-2.md'])
-  })
-
   it('leaves a post as it was when an image fails, and syncs the rest', async () => {
     await sync([discussion()])
-    const failing = async () => { throw new Error('404') }
     const { errors } = await syncDiscussions({
       discussions: [
-        discussion({ body: `![New](${asset}-new)` }),
-        discussion({ number: 2, title: 'Other', body: 'Fine' })
+        discussion({ body: body({ post: `![New](${asset}-new)` }) }),
+        discussion({ number: 2, title: 'Other', body: body({ post: 'Fine' }) })
       ],
       rootDir,
-      download: failing,
-      log: silent
+      download: async () => { throw new Error('404') },
+      log
     })
     assert.equal(errors.length, 1)
-    const post = await fs.readFile(path.join(postsDir(), '2026-11-20-designing-search.md'), 'utf8')
-    assert.match(post, /Search page/)
-    assert.deepEqual((await list('app/posts/discussions')).sort(), ['2026-11-20-designing-search.md', '2026-11-20-other.md'])
+    assert.match(await readPost(1), /Search page/)
+    assert.deepEqual((await list('app/posts/discussions')).sort(), ['1.md', '2.md'])
   })
 })
 

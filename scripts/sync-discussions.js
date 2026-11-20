@@ -3,9 +3,12 @@
 
   Every discussion in the "Design history" category that has the `publish`
   label, and was written by a member of the organisation or a collaborator,
-  becomes a markdown file in app/posts/discussions/, with its images
-  downloaded into app/images/<post>/. Posts whose discussion has been
-  deleted, unlabelled or moved out of the category are removed.
+  becomes app/posts/discussions/<number>.md, published at
+  /discussions/<number>/, with its images downloaded into
+  app/images/discussions/<number>/. Files are named by discussion number so
+  the title and date can change without changing the URL. Posts whose
+  discussion has been deleted, unlabelled or moved out of the category are
+  removed.
 
   The discussion is the source of truth: generated files are overwritten on
   every sync. Run by the deploy workflow (.github/workflows/deploy.yml), but
@@ -30,11 +33,10 @@ import {
   imageHash,
   isGithubImage,
   isPublishable,
+  parseDate,
   parseFormBody,
-  readFrontMatter,
   renderPost,
-  rewriteImages,
-  slugify
+  rewriteImages
 } from './lib/discussion-post.js'
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
@@ -47,32 +49,25 @@ export async function syncDiscussions ({
   log = console
 }) {
   const postsDir = path.join(rootDir, 'app/posts/discussions')
-  const imagesDir = path.join(rootDir, 'app/images')
+  // Served from /discussions/<number>/, next to the post
+  const imagesDir = path.join(rootDir, 'app/images/discussions')
   await fs.mkdir(postsDir, { recursive: true })
 
-  const existing = await existingPosts(postsDir)
-  // Posts are published at /<slug>/ (Eleventy drops the date from the file
-  // name) and their images are served from the same folder, so slugs must be
-  // unique across all posts and image folders
-  const takenSlugs = new Set([
-    ...(await allPostStems(path.join(rootDir, 'app/posts'))).map(slugFromStem),
-    ...(await fs.readdir(imagesDir).catch(() => []))
-  ])
+  const existing = await existingNumbers(postsDir)
   const published = discussions.filter(discussion => isPublishable(discussion, publishLabel))
-  const keep = new Set()
+  const keep = new Set(published.map(discussion => discussion.number))
   const changes = []
   const errors = []
 
   for (const discussion of published) {
-    const previous = existing.get(discussion.number)
-    const date = previous?.date || discussion.createdAt.slice(0, 10)
-    const stem = previous?.stem || `${date}-${uniqueSlug(slugify(discussion.title), takenSlugs)}`
-    takenSlugs.add(slugFromStem(stem))
-    keep.add(stem)
-
     try {
-      const { summary, tags, post } = parseFormBody(discussion.body)
-      const postImagesDir = path.join(imagesDir, slugFromStem(stem))
+      const { summary, date: dateField, tags, post } = parseFormBody(discussion.body)
+      const date = parseDate(dateField) || discussion.createdAt.slice(0, 10)
+      if (dateField && !parseDate(dateField)) {
+        log.warn(`::warning::#${discussion.number} "${discussion.title}": date "${dateField}" isn't a valid date (use 2026-11-20 or 20/11/2026), so the date the discussion was created was used.`)
+      }
+
+      const postImagesDir = path.join(imagesDir, String(discussion.number))
       const localFiles = new Map()
 
       for (const image of findImages(post)) {
@@ -93,10 +88,10 @@ export async function syncDiscussions ({
         post: neutraliseMarkup(rewriteImages(post, localFiles))
       })
 
-      const file = path.join(postsDir, `${stem}.md`)
+      const file = path.join(postsDir, `${discussion.number}.md`)
       if (await readFile(file) !== contents) {
         await fs.writeFile(file, contents)
-        changes.push(`${previous ? 'Update' : 'Add'} #${discussion.number}: ${discussion.title}`)
+        changes.push(`${existing.has(discussion.number) ? 'Update' : 'Add'} #${discussion.number}: ${discussion.title}`)
       }
     } catch (error) {
       // Leave this post as it was, carry on with the others, and report it
@@ -104,11 +99,11 @@ export async function syncDiscussions ({
     }
   }
 
-  for (const [number, { stem }] of existing) {
-    if (keep.has(stem)) continue
-    await fs.rm(path.join(postsDir, `${stem}.md`), { force: true })
-    await fs.rm(path.join(imagesDir, slugFromStem(stem)), { force: true, recursive: true })
-    changes.push(`Remove #${number}: ${stem}`)
+  for (const number of existing) {
+    if (keep.has(number)) continue
+    await fs.rm(path.join(postsDir, `${number}.md`), { force: true })
+    await fs.rm(path.join(imagesDir, String(number)), { force: true, recursive: true })
+    changes.push(`Remove #${number}`)
   }
 
   return { changes, errors }
@@ -212,33 +207,13 @@ async function removeUnusedImages (directory, used) {
   if (files.length && !used.size) await fs.rm(directory, { force: true, recursive: true })
 }
 
-async function existingPosts (postsDir) {
-  const posts = new Map()
-  for (const file of await fs.readdir(postsDir)) {
-    if (!file.endsWith('.md')) continue
-    const data = readFrontMatter(await fs.readFile(path.join(postsDir, file), 'utf8'))
-    if (!data.discussion?.number) continue
-    posts.set(data.discussion.number, {
-      stem: file.slice(0, -3),
-      date: data.date instanceof Date ? data.date.toISOString().slice(0, 10) : String(data.date)
-    })
-  }
-  return posts
-}
-
-async function allPostStems (dir) {
-  const entries = await fs.readdir(dir, { recursive: true })
-  return entries.filter(file => file.endsWith('.md')).map(file => path.basename(file, '.md'))
-}
-
-function slugFromStem (stem) {
-  return stem.replace(/^\d{4}-\d{2}-\d{2}-/, '')
-}
-
-function uniqueSlug (slug, taken) {
-  let candidate = slug
-  for (let i = 2; taken.has(candidate); i++) candidate = `${slug}-${i}`
-  return candidate
+// Discussion numbers of the posts already synced (files named <number>.md)
+async function existingNumbers (postsDir) {
+  const files = await fs.readdir(postsDir)
+  return new Set(files
+    .map(file => file.match(/^(\d+)\.md$/))
+    .filter(Boolean)
+    .map(match => Number(match[1])))
 }
 
 async function readFile (file) {

@@ -19,11 +19,12 @@ permissions:
   pages: write
   id-token: write
 
-# One run at a time. Every run syncs all posts, so cancelling an older run
-# loses nothing.
+# Queue runs rather than cancelling them, so a deploy is never stopped part
+# way through. At most one run waits, and a newer run replaces it. Every run
+# syncs all posts, so the run that waited picks up every change.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
