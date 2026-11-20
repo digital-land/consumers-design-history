@@ -5,16 +5,22 @@ on:
     branches:
       - main
 
+  # Posts are written as discussions in the "Design history" category. Any
+  # change to a discussion syncs the posts into the repo and redeploys.
+  discussion:
+    types: [created, edited, deleted, labeled, unlabeled, category_changed, transferred]
+
   # Enable running this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Set permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read
+  contents: write # commit synced posts
+  discussions: read # read posts
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
+# One run at a time. Every run syncs all posts, so cancelling an older run
+# loses nothing.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -25,16 +31,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync posts from Discussions
+        id: sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/sync-discussions.js
+
+      # Commits made with GITHUB_TOKEN don't trigger other workflows, so this
+      # doesn't loop. It's also why the build happens in this same job.
+      - name: Commit synced posts
+        run: |
+          git add -A app/posts/discussions app/images
+          if git diff --cached --quiet; then
+            echo "No post changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -F "$RUNNER_TEMP/sync-commit-message"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
         with:
           enablement: true # Enable GitHub Pages if it's not already
-      - name: Install dependencies
-        run: npm ci
+
       - name: Build with Eleventy
         run: npm run-script build
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
+
+    outputs:
+      sync-errors: ${{ steps.sync.outputs.errors }}
 
   deploy:
     environment:
@@ -46,3 +89,14 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Posts that failed to sync are left as they were and everything else is
+  # deployed. Fail the run afterwards so the problem is visible.
+  check-sync:
+    runs-on: ubuntu-latest
+    needs: [build, deploy]
+    if: needs.build.outputs.sync-errors != '0'
+    steps:
+      - run: |
+          echo "::error::Some posts failed to sync. See the 'Sync posts from Discussions' step in the build job."
+          exit 1

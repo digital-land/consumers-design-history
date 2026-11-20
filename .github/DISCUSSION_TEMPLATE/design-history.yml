@@ -1,0 +1,38 @@
+# Form for new posts in the "Design history" discussion category (the file
+# name must match the category's slug). Once a post has the `publish` label it
+# appears on the design history site, and updates whenever it's edited.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write your design history post here. When it's ready, ask someone on the team to add the **publish** label and it will appear on the [design history site](https://digital-land.github.io/consumers-design-history/) a few minutes later.
+
+        You can keep editing after it's published. Changes appear on the site automatically, and every version is kept.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences about what this post covers. This is shown in the list of posts and in search results.
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Optional. Separate tags with commas.
+      placeholder: local plans, user research
+  - type: textarea
+    id: post
+    attributes:
+      label: Post
+      description: |
+        Use `##` for headings. Drag and drop screenshots where they should appear (PNG, JPEG, GIF, WebP or AVIF).
+        After adding an image, replace the `alt="..."` text with a description of what it shows, for people using screen readers.
+      value: |
+        ## What we found
+
+        ## What we changed
+
+        ## Next steps
+    validations:
+      required: true

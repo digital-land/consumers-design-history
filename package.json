@@ -14,7 +14,7 @@
     "start": "eleventy --serve --quiet",
     "preserve": "npm run build",
     "serve": "http-server ./_site",
-    "test": "standard"
+    "test": "standard && node --test 'tests/**/*.test.js'"
   },
   "dependencies": {
     "@11ty/eleventy": "^3.0.0",
@@ -22,6 +22,7 @@
     "http-server": "^14.1.1"
   },
   "devDependencies": {
+    "js-yaml": "^4.3.2",
     "standard": "^17.1.0",
     "webshot-node": "^0.18.2"
   },
