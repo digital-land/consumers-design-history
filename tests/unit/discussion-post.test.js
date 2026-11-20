@@ -4,7 +4,8 @@ import { describe, it } from 'node:test'
 import {
   neutraliseMarkup,
   findImages,
-  isPublishable,
+  hasPublishLabel,
+  isTrustedRole,
   parseDate,
   parseFormBody,
   readFrontMatter,
@@ -64,18 +65,18 @@ describe('parseFormBody', () => {
   })
 })
 
-describe('isPublishable', () => {
-  const discussion = (labels, authorAssociation) => ({
-    labels: { nodes: labels.map(name => ({ name })) },
-    authorAssociation
+describe('who can publish', () => {
+  const discussion = labels => ({ labels: { nodes: labels.map(name => ({ name })) } })
+
+  it('needs the publish label', () => {
+    assert.equal(hasPublishLabel(discussion(['idea', 'publish']), 'publish'), true)
+    assert.equal(hasPublishLabel(discussion(['idea']), 'publish'), false)
+    assert.equal(hasPublishLabel({}, 'publish'), false)
   })
 
-  it('needs the publish label and a trusted author', () => {
-    assert.equal(isPublishable(discussion(['publish'], 'MEMBER'), 'publish'), true)
-    assert.equal(isPublishable(discussion(['publish'], 'COLLABORATOR'), 'publish'), true)
-    assert.equal(isPublishable(discussion([], 'MEMBER'), 'publish'), false)
-    assert.equal(isPublishable(discussion(['publish'], 'NONE'), 'publish'), false)
-    assert.equal(isPublishable(discussion(['publish'], 'CONTRIBUTOR'), 'publish'), false)
+  it('needs triage access or above', () => {
+    for (const role of ['admin', 'maintain', 'write', 'triage']) assert.equal(isTrustedRole(role), true)
+    for (const role of ['read', null, undefined]) assert.equal(isTrustedRole(role), false)
   })
 })
 

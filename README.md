@@ -16,7 +16,11 @@ To take a post down, remove the **publish** label or delete the discussion.
 
 ### Who can publish
 
-A discussion is only published when it has the **publish** label, which only people with triage access or above can add, and was started by a member of the organisation or a collaborator on this repo. Anyone else's discussions are never published, even with the label.
+A discussion is only published when it has the **publish** label, which only people with triage access or above can add, and its current version was written by someone with triage, write, maintain or admin access to this repo. That's the last person to edit it, or the author if it's never been edited. Anyone else's discussions are never published, even with the label.
+
+If the author later leaves and loses access, their posts stay published as they are. Edits they make afterwards aren't published, but edits by anyone on the team are. A post only comes off the site when the label is removed, the discussion is deleted, or it's moved out of the category.
+
+When a labelled post isn't published or updated for these reasons, the workflow run in the **Actions** tab shows a warning naming the person.
 
 ### How it works
 
