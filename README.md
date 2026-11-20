@@ -2,12 +2,39 @@
 
 A place for you to document your GOV.UK service designs.
 
-## Adding and editing posts on GitHub
+## Writing a post
 
-You don't need to set up anything locally to add or edit a post — posts are just markdown files, and everything can be done from the GitHub web UI.
+Posts are written as [discussions](../../discussions/categories/design-history) in the **Design history** category. You don't need to use git or pull requests.
 
-* **Editing an existing post** — open the post's file under [app/posts](app/posts) or its images under [app/images](app/images), and use GitHub's edit or upload buttons to make changes directly, or add screenshots.
-* **Creating a new post** — run the [New post](../../actions/workflows/new-post.yml) action (from the **Actions** tab, select it and click **Run workflow**), giving it a slug for the post. This generates the post template and an images folder on a new branch and opens a pull request, which you can then edit and upload screenshots to on GitHub before marking it ready for review.
+1. Go to [Discussions](../../discussions/categories/design-history) and select **New discussion**. Fill in the title, summary, date (optional), tags and post.
+2. Drag and drop screenshots into the post where they should appear. After adding each one, replace the `alt="..."` text with a description of what the image shows.
+3. When the post is ready, ask someone on the team to add the **publish** label. It appears on the site a few minutes later.
+
+To change a post, edit the discussion. The site updates automatically, GitHub keeps every version of the discussion, and every published version is also committed to this repo. Use the discussion's comments to give feedback on a post.
+
+To take a post down, remove the **publish** label or delete the discussion.
+
+### Who can publish
+
+A discussion is only published when it has the **publish** label, which only people with triage access or above can add, and was started by a member of the organisation or a collaborator on this repo. Anyone else's discussions are never published, even with the label.
+
+### How it works
+
+The [deploy workflow](.github/workflows/deploy.yml) runs whenever a discussion changes. It runs [scripts/sync-discussions.js](scripts/sync-discussions.js), which writes each published discussion to `app/posts/discussions/<number>.md` and downloads its images into `app/images/discussions/<number>/`. It commits any changes to `main`, then builds and deploys the site. Runs are queued, never cancelled, so a deploy is never stopped part way through.
+
+The files in `app/posts/discussions/` are generated, so don't edit them: changes are overwritten by the next sync. Posts are published at `/discussions/<number>/`, matching the discussion's number on GitHub, so the title and date can change without breaking links.
+
+If a post can't be synced (for example, an image fails to download), the published version stays as it was, everything else still deploys, and the workflow run fails so the problem shows up in the **Actions** tab.
+
+To run the sync locally:
+
+```sh
+GITHUB_TOKEN=$(gh auth token) node scripts/sync-discussions.js
+```
+
+### Posts written as files
+
+The older posts in `app/posts/` are markdown files, and can still be edited on GitHub directly, or created with the [New post](../../actions/workflows/new-post.yml) action.
 
 ## Purpose of this project
 
