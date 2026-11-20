@@ -2,8 +2,8 @@
   Syncs design history posts from GitHub Discussions into the repo.
 
   Every discussion in the "Design history" category that has the `publish`
-  label, and was written by a member of the organisation or a collaborator,
-  becomes app/posts/discussions/<number>.md, published at
+  label, and was last written by someone with triage access or above on the
+  repo, becomes app/posts/discussions/<number>.md, published at
   /discussions/<number>/, with its images downloaded into
   app/images/discussions/<number>/. Files are named by discussion number so
   the title and date can change without changing the URL. Posts whose
@@ -31,8 +31,9 @@ import {
   findImages,
   imageFilename,
   imageHash,
+  hasPublishLabel,
   isGithubImage,
-  isPublishable,
+  isTrustedRole,
   parseDate,
   parseFormBody,
   renderPost,
@@ -44,6 +45,7 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 export async function syncDiscussions ({
   discussions,
   rootDir,
+  getRole,
   publishLabel = 'publish',
   download = downloadImage,
   log = console
@@ -54,10 +56,39 @@ export async function syncDiscussions ({
   await fs.mkdir(postsDir, { recursive: true })
 
   const existing = await existingNumbers(postsDir)
-  const published = discussions.filter(discussion => isPublishable(discussion, publishLabel))
-  const keep = new Set(published.map(discussion => discussion.number))
   const changes = []
   const errors = []
+
+  // Work out which labelled discussions to sync. What matters is who wrote
+  // the current version: the last editor, or the author if it was never
+  // edited. If they can publish, sync it. If not (an outsider, someone who
+  // has since left, or a deleted account), keep any published version as it
+  // is, so posts don't disappear when people leave and their later edits
+  // don't go live. Look each person up once.
+  const roles = new Map()
+  const published = []
+  const keep = new Set()
+  for (const discussion of discussions) {
+    if (!hasPublishLabel(discussion, publishLabel)) continue
+    const login = (discussion.editor || discussion.author)?.login
+    const wrote = discussion.editor ? 'last edited by' : 'written by'
+    try {
+      if (login && !roles.has(login)) roles.set(login, await getRole(login))
+      if (login && isTrustedRole(roles.get(login))) {
+        published.push(discussion)
+        keep.add(discussion.number)
+      } else if (existing.has(discussion.number)) {
+        keep.add(discussion.number)
+        log.warn(`::warning::#${discussion.number} "${discussion.title}" was ${wrote} ${login || 'a deleted user'}, who doesn't have triage access or above on the repo, so the published version was kept as it was. Someone with access can edit the discussion to update it.`)
+      } else {
+        log.warn(`::warning::#${discussion.number} "${discussion.title}" has the ${publishLabel} label, but was ${wrote} ${login || 'a deleted user'}, who doesn't have triage access or above on the repo, so it isn't published.`)
+      }
+    } catch (error) {
+      // Don't remove a published post just because the lookup failed
+      keep.add(discussion.number)
+      errors.push(`#${discussion.number} "${discussion.title}": could not check the author's access: ${error.message}`)
+    }
+  }
 
   for (const discussion of published) {
     try {
@@ -158,7 +189,8 @@ export async function fetchDiscussions ({ token, owner, name, categorySlug, requ
               url
               createdAt
               lastEditedAt
-              authorAssociation
+              author { login }
+              editor { login }
               labels(first: 50) { nodes { name } }
             }
           }
@@ -170,6 +202,28 @@ export async function fetchDiscussions ({ token, owner, name, categorySlug, requ
   } while (cursor)
 
   return discussions
+}
+
+/*
+  Returns a function that looks up someone's role on the repo (admin,
+  maintain, write, triage or read), or null if they have no access.
+*/
+export function repoRoleLookup ({ token, owner, name, request = fetch }) {
+  return async login => {
+    const response = await request(
+      `https://api.github.com/repos/${owner}/${name}/collaborators/${encodeURIComponent(login)}/permission`,
+      {
+        headers: {
+          authorization: `bearer ${token}`,
+          accept: 'application/vnd.github+json'
+        }
+      }
+    )
+    if (response.status === 404) return null
+    const json = await response.json()
+    if (!response.ok) throw new Error(`GitHub API error ${response.status}: ${json.message || ''}`)
+    return json.role_name || null
+  }
 }
 
 async function downloadImage (url) {
@@ -246,6 +300,7 @@ async function main () {
   const { changes, errors } = await syncDiscussions({
     discussions,
     rootDir: process.cwd(),
+    getRole: repoRoleLookup({ token, owner, name }),
     publishLabel: process.env.PUBLISH_LABEL || 'publish'
   })
 

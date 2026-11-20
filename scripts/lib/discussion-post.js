@@ -8,11 +8,13 @@ import crypto from 'node:crypto'
 
 import yaml from 'js-yaml'
 
-// Author associations allowed to publish. Discussions in a public repo can be
-// started by anyone, so a post is only published when it has the publish label
-// (which only triagers and above can add) AND was written by someone in the
-// organisation or a collaborator on the repo.
-export const TRUSTED_AUTHOR_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR']
+// Repo roles allowed to publish. Discussions in a public repo can be started
+// by anyone, so a post is only published when it has the publish label AND
+// whoever wrote its current version has one of these roles on the repo: the
+// same people who can add the label. (The discussion's authorAssociation isn't
+// used because the Actions token sees private organisation members as
+// outsiders.)
+export const TRUSTED_ROLES = ['admin', 'maintain', 'write', 'triage']
 
 // Images on these hosts are downloaded into the repo. Anything else is left
 // as an external link.
@@ -28,10 +30,12 @@ const IMAGE_EXTENSIONS = {
 
 const NO_RESPONSE = '_No response_'
 
-export function isPublishable (discussion, publishLabel) {
-  const labels = (discussion.labels?.nodes || []).map(label => label.name)
-  return labels.includes(publishLabel) &&
-    TRUSTED_AUTHOR_ASSOCIATIONS.includes(discussion.authorAssociation)
+export function hasPublishLabel (discussion, publishLabel) {
+  return (discussion.labels?.nodes || []).some(label => label.name === publishLabel)
+}
+
+export function isTrustedRole (role) {
+  return TRUSTED_ROLES.includes(role)
 }
 
 /*
