@@ -4,15 +4,37 @@ A place for you to document your GOV.UK service designs.
 
 ## Writing a post
 
-Posts are written as [discussions](../../discussions/categories/design-history) in the **Design history** category. You don't need to use git or pull requests.
+Posts are written as [discussions](../../discussions/categories/design-history) in the **Design history** category and published on the [design history site](https://digital-land.github.io/consumers-design-history/). You don't need to use git or pull requests.
 
-1. Go to [Discussions](../../discussions/categories/design-history) and select **New discussion**. Fill in the title, summary, date (optional), tags and post.
-2. Drag and drop screenshots into the post where they should appear. After adding each one, replace the `alt="..."` text with a description of what the image shows.
-3. When the post is ready, ask someone on the team to add the **publish** label. It appears on the site a few minutes later.
+To start a post you need **maintain** or **admin** access to this repo, because the category only lets maintainers start discussions. Anyone can comment. Ask a repo admin if you can't see the **New discussion** button.
 
-To change a post, edit the discussion. The site updates automatically, GitHub keeps every version of the discussion, and every published version is also committed to this repo. Use the discussion's comments to give feedback on a post.
+### Start a post
 
-To take a post down, remove the **publish** label or delete the discussion.
+1. Go to [Design history discussions](../../discussions/categories/design-history) and select **New discussion**.
+2. Fill in the form:
+   * **Title** – the post's title on the site
+   * **Summary** – one or two sentences, shown in the list of posts and in search results
+   * **Date** (optional) – the date shown on the post, as `20/11/2026` or `2026-11-20`. Leave it blank to use the date you start the discussion.
+   * **Tags** (optional) – separated by commas, e.g. `local plans, user research`
+   * **Post** – the post itself, in markdown. Use `##` for headings.
+3. Drag and drop or paste screenshots into the post where they should appear. GitHub adds a line like `<img alt="Screenshot 2026-11-20 at 10.00.00" src="..." />`. Change the `alt="..."` text to describe what the image shows, for people using screen readers. Images can be PNG, JPEG, GIF, WebP or AVIF.
+4. Select **Start discussion**. The post isn't on the site yet, so you can share it with the team for comments first.
+5. When it's ready, add the **publish** label (in the discussion's sidebar), or ask someone on the team to. The post appears on the site a few minutes later, at `https://digital-land.github.io/consumers-design-history/discussions/<number>/`, where `<number>` is the number in the discussion's own web address.
+
+### Change a post
+
+Open the discussion, select **⋯** at the top right of the post, then **Edit**. Save your changes and the site updates a few minutes later. GitHub keeps every version of the discussion, and every published version is also committed to this repo.
+
+When editing:
+
+* the post shows the form's headings (`### Summary`, `### Date`, `### Tags` and `### Post`). Keep them, and keep your post below `### Post`, or the summary and tags can end up mixed into the post.
+* `_No response_` under a heading means that field was left blank. You can leave it, or replace it with a value.
+* to add an image, drop or paste it into the post below `### Post`. To remove one, delete its `<img ...>` line.
+* only the post is published. Comments, and any images in them, stay on GitHub, so use comments for feedback and work in progress.
+
+### Take a post down
+
+Remove the **publish** label, delete the discussion, or move it to another category. The post comes off the site a few minutes later.
 
 ### Who can publish
 
